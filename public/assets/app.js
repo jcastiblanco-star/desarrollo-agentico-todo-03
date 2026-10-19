@@ -31,5 +31,11 @@ document.addEventListener("submit", function (event) {
     status.remove();
   }
 
-  fetch(form.action);
+  fetch(form.action, {
+    method: "PUT",
+    headers: {
+      "X-CSRF-Token": form.querySelector('input[name="authenticity_token"]').value,
+    },
+    credentials: "same-origin",
+  });
 });
