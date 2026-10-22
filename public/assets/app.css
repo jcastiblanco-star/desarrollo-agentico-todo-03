@@ -23,6 +23,18 @@ form {
   --color-primary-hover: #992b1e;
   --color-focus: #245ab4;
   --color-danger: #a52b25;
+  --color-primary-soft: #f7e9e4;
+  --color-primary-soft-hover: #f2ded6;
+  --color-hover: #f2f2ee;
+  --color-danger-soft: #fcf0ec;
+  --color-error-text: #912a20;
+  --color-error-bg: #fff0eb;
+  --color-button-bg: #f6f6f2;
+  --color-button-hover: #eaeae4;
+  --color-button-border: #dadad4;
+  --radius: 6px;
+  --control-size: 44px;
+  --text-small: 0.85rem;
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -52,7 +64,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  min-height: 44px;
+  min-height: var(--control-size);
   padding: 0 0.65rem;
   margin-bottom: 1.5rem;
   color: var(--color-text);
@@ -71,10 +83,10 @@ body {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  min-height: 44px;
+  min-height: var(--control-size);
   padding: 0.55rem 0.7rem;
-  border-radius: 6px;
-  background: #f7e9e4;
+  border-radius: var(--radius);
+  background: var(--color-primary-soft);
   color: #a03123;
   font-size: 0.9rem;
   font-weight: 600;
@@ -82,7 +94,7 @@ body {
 }
 
 .nav-link:hover {
-  background: #f2ded6;
+  background: var(--color-primary-soft-hover);
 }
 
 .nav-link svg {
@@ -144,14 +156,14 @@ h1 {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 44px;
-  min-height: 44px;
+  width: var(--control-size);
+  min-height: var(--control-size);
   padding: 0;
   font: inherit;
   color: var(--color-muted);
   background: transparent;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius);
   cursor: pointer;
   text-decoration: none;
 }
@@ -174,7 +186,7 @@ h1 {
 }
 
 .task-toggle-button:hover .completion-icon {
-  background: #f7e9e4;
+  background: var(--color-primary-soft);
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
@@ -215,12 +227,12 @@ h1 {
 
 .icon-action:hover {
   color: var(--color-text);
-  background: #f2f2ee;
+  background: var(--color-hover);
 }
 
 .icon-danger:hover {
   color: var(--color-danger);
-  background: #fcf0ec;
+  background: var(--color-danger-soft);
 }
 
 .new-task {
@@ -237,8 +249,8 @@ h1 {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: var(--control-size);
+  height: var(--control-size);
   color: var(--color-primary);
   font-size: 1.8rem;
   font-weight: 300;
@@ -248,13 +260,13 @@ h1 {
 input[type="text"] {
   width: 100%;
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--control-size);
   padding: 0.6rem 0.75rem;
   font: inherit;
   color: var(--color-text);
   background: #ffffff;
   border: 1px solid #92928a;
-  border-radius: 6px;
+  border-radius: var(--radius);
 }
 
 .new-task-row input {
@@ -275,14 +287,14 @@ input[aria-invalid="true"] {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  min-height: 44px;
+  min-height: var(--control-size);
   padding: 0.6rem 0.9rem;
-  border: 1px solid #dadad4;
-  border-radius: 6px;
+  border: 1px solid var(--color-button-border);
+  border-radius: var(--radius);
   color: #41413d;
-  background: #f6f6f2;
+  background: var(--color-button-bg);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   font-weight: 600;
   line-height: 1.5;
   text-decoration: none;
@@ -291,7 +303,7 @@ input[aria-invalid="true"] {
 }
 
 .button:hover {
-  background: #eaeae4;
+  background: var(--color-button-hover);
 }
 
 .button-primary {
@@ -318,13 +330,17 @@ input:focus-visible {
   font-size: 0.8rem;
 }
 
+.field-error,
+.flash {
+  border-radius: var(--radius);
+  font-size: var(--text-small);
+}
+
 .field-error {
   margin-top: 0.75rem;
   padding: 0.7rem 0.85rem;
-  border-radius: 6px;
-  color: #912a20;
-  background: #fff0eb;
-  font-size: 0.85rem;
+  color: var(--color-error-text);
+  background: var(--color-error-bg);
 }
 
 .empty-state {
@@ -337,8 +353,6 @@ input:focus-visible {
   margin-bottom: 1.25rem;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  font-size: 0.85rem;
 }
 
 .flash-success {
@@ -351,9 +365,9 @@ input:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  min-height: 44px;
+  min-height: var(--control-size);
   margin-bottom: 1.1rem;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   color: var(--color-muted);
   text-decoration: none;
 }
@@ -365,7 +379,7 @@ input:focus-visible {
 .edit-task label {
   display: block;
   margin-bottom: 0.5rem;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   font-weight: 600;
 }
 
