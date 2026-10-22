@@ -18,12 +18,26 @@ type Task struct {
 	ID        uuid.UUID `json:"id" db:"id" form:"-"`
 	Title     string    `json:"title" db:"title" form:"title"`
 	Completed bool      `json:"completed" db:"completed" form:"-"`
+	Position  int       `json:"position" db:"position" form:"-"`
 	CreatedAt time.Time `json:"created_at" db:"created_at" form:"-"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at" form:"-"`
 }
 
 // Tasks es una colección de Task.
 type Tasks []Task
+
+// NextPosition devuelve la posición que debe ocupar una tarea nueva para
+// quedar al final de la lista.
+func NextPosition(tx *pop.Connection) (int, error) {
+	last := Tasks{}
+	if err := tx.Order("position desc").Limit(1).All(&last); err != nil {
+		return 0, err
+	}
+	if len(last) == 0 {
+		return 0, nil
+	}
+	return last[0].Position + 1, nil
+}
 
 // Validate se ejecuta en cada llamada a los métodos "pop.Validate*".
 func (t *Task) Validate(tx *pop.Connection) (*validate.Errors, error) {
