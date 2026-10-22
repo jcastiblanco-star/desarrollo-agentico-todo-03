@@ -27,6 +27,8 @@ form {
   --color-primary-soft-hover: #f2ded6;
   --color-hover: #f2f2ee;
   --color-danger-soft: #fcf0ec;
+  --color-success: #2e7d32;
+  --color-success-soft: #eaf5ec;
   --color-error-text: #912a20;
   --color-error-bg: #fff0eb;
   --color-button-bg: #f6f6f2;
@@ -139,6 +141,13 @@ h1 {
   min-height: 61px;
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-danger-soft);
+  box-shadow: inset 3px 0 0 var(--color-danger);
+}
+
+.task-completed {
+  background: var(--color-success-soft);
+  box-shadow: inset 3px 0 0 var(--color-success);
 }
 
 .task-title {
@@ -173,7 +182,7 @@ h1 {
   place-items: center;
   width: 20px;
   height: 20px;
-  border: 1.5px solid #858580;
+  border: 1.5px solid var(--color-danger);
   border-radius: 50%;
   color: #ffffff;
   transition: background-color 120ms ease, border-color 120ms ease;
@@ -202,12 +211,18 @@ h1 {
 }
 
 .task-completed .completion-icon {
-  background: #777771;
-  border-color: #777771;
+  background: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .task-completed .completion-icon svg {
   opacity: 1;
+}
+
+.task-completed .task-toggle-button:hover .completion-icon {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #ffffff;
 }
 
 .task-actions {
