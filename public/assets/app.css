@@ -392,6 +392,28 @@ input:focus-visible {
   border: 0;
 }
 
+.task-handle {
+  cursor: grab;
+  touch-action: none;
+}
+
+.task-handle:active {
+  cursor: grabbing;
+}
+
+.task {
+  transition: transform 150ms ease;
+}
+
+.task.task-dragging {
+  position: relative;
+  z-index: 1;
+  transition: none;
+  cursor: grabbing;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgb(40 40 38 / 0.14);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .task-actions {
     opacity: 0;
@@ -431,6 +453,10 @@ input:focus-visible {
 
   .task-actions {
     opacity: 1;
+  }
+
+  .task-handle {
+    width: 36px;
   }
 
   .task {

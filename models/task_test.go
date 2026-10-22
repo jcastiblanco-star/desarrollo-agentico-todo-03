@@ -56,6 +56,36 @@ func (ms *ModelSuite) Test_Task_Title_TooLong_Invalid() {
 	ms.NotEmpty(verrs.Get("title"))
 }
 
+func (ms *ModelSuite) Test_Task_Position_DefaultsToZero() {
+	task := &Task{Title: "Sin posición explícita"}
+	verrs, err := ms.DB.ValidateAndCreate(task)
+	ms.NoError(err)
+	ms.False(verrs.HasAny())
+
+	reloaded := &Task{}
+	ms.NoError(ms.DB.Find(reloaded, task.ID))
+	ms.Equal(0, reloaded.Position)
+}
+
+func (ms *ModelSuite) Test_NextPosition_EmptyTable() {
+	next, err := NextPosition(ms.DB)
+	ms.NoError(err)
+	ms.Equal(0, next)
+}
+
+func (ms *ModelSuite) Test_NextPosition_AppendsAtEnd() {
+	for i, title := range []string{"Primera", "Segunda", "Tercera"} {
+		task := &Task{Title: title, Position: i}
+		verrs, err := ms.DB.ValidateAndCreate(task)
+		ms.NoError(err)
+		ms.False(verrs.HasAny())
+	}
+
+	next, err := NextPosition(ms.DB)
+	ms.NoError(err)
+	ms.Equal(3, next)
+}
+
 func (ms *ModelSuite) Test_Task_Toggle_Persists() {
 	task := &Task{Title: "Revisar el correo"}
 	verrs, err := ms.DB.ValidateAndCreate(task)
