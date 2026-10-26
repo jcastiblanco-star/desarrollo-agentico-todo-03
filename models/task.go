@@ -15,12 +15,13 @@ const TitleMaxLength = 200
 
 // Task representa una tarea de la lista.
 type Task struct {
-	ID        uuid.UUID `json:"id" db:"id" form:"-"`
-	Title     string    `json:"title" db:"title" form:"title"`
-	Completed bool      `json:"completed" db:"completed" form:"-"`
-	Position  int       `json:"position" db:"position" form:"-"`
-	CreatedAt time.Time `json:"created_at" db:"created_at" form:"-"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at" form:"-"`
+	ID        uuid.UUID  `json:"id" db:"id" form:"-"`
+	Title     string     `json:"title" db:"title" form:"title"`
+	Completed bool       `json:"completed" db:"completed" form:"-"`
+	DueDate   *time.Time `json:"due_date" db:"due_date" form:"due_date"`
+	Position  int        `json:"position" db:"position" form:"-"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at" form:"-"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at" form:"-"`
 }
 
 // Tasks es una colección de Task.

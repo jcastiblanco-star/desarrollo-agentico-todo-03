@@ -32,6 +32,9 @@
             </button>
           </form>
           <span class="task-title"><%= t.Title %></span>
+          <%= if (t.DueDate != nil) { %>
+            <span class="task-due-date">Fecha límite: <%= t.DueDate.Format("02 de enero de 2006") %></span>
+          <% } %>
           <%= if (t.Completed) { %>
             <span class="task-status">Completada</span>
           <% } %>

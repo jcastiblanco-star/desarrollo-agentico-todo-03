@@ -3,6 +3,7 @@ package actions
 import (
 	"net/url"
 	"strings"
+	"time"
 
 	"todo/models"
 
@@ -353,4 +354,42 @@ func (as *ActionSuite) Test_TasksIndex_Rendered_HasHandleAndTaskID() {
 	body := res.Body.String()
 	as.Equal(3, strings.Count(body, `data-task-id="`))
 	as.Equal(3, strings.Count(body, `class="icon-action task-handle"`))
+}
+
+func (as *ActionSuite) Test_TasksUpdate_WithDueDate() {
+	task := as.taskForEditing(false)
+	id := task.ID
+	dueDate := "2026-11-15"
+
+	res := as.HTML("/tasks/%s", id).Put(url.Values{
+		"title":    {"Título con fecha límite"},
+		"due_date": {dueDate},
+	})
+	as.Equal(303, res.Code)
+
+	as.NoError(as.DB.Reload(task))
+	as.Equal("Título con fecha límite", task.Title)
+	as.NotNil(task.DueDate)
+	as.Equal(2026, task.DueDate.Year())
+	as.Equal(time.November, task.DueDate.Month())
+	as.Equal(15, task.DueDate.Day())
+}
+
+func (as *ActionSuite) Test_TasksUpdate_ClearsDueDate() {
+	dueDate := time.Date(2026, 11, 15, 0, 0, 0, 0, time.UTC)
+	task := &models.Task{Title: "Tarea con fecha", DueDate: &dueDate}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+	as.NoError(as.DB.Reload(task))
+	as.NotNil(task.DueDate)
+
+	res := as.HTML("/tasks/%s", task.ID).Put(url.Values{
+		"title": {"Título actualizado"},
+	})
+	as.Equal(303, res.Code)
+
+	as.NoError(as.DB.Reload(task))
+	as.Equal("Título actualizado", task.Title)
+	as.Nil(task.DueDate)
 }

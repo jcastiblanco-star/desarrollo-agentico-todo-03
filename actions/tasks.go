@@ -3,6 +3,7 @@ package actions
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"todo/models"
 
@@ -139,12 +140,14 @@ func TasksUpdate(c buffalo.Context) error {
 	}
 
 	input := struct {
-		Title string `form:"title" json:"title"`
+		Title   string     `form:"title" json:"title"`
+		DueDate *time.Time `form:"due_date" json:"due_date"`
 	}{}
 	if err := c.Bind(&input); err != nil {
 		return err
 	}
 	task.Title = strings.TrimSpace(input.Title)
+	task.DueDate = input.DueDate
 
 	verrs, err := tx.ValidateAndUpdate(task)
 	if err != nil {
