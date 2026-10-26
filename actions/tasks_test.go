@@ -89,6 +89,24 @@ func (as *ActionSuite) Test_TasksToggle_InvalidID() {
 	as.Equal(404, res.Code)
 }
 
+func (as *ActionSuite) Test_TasksToggle_WithFormDataAndToken() {
+	// Valida que el cliente JavaScript envía correctamente la petición PUT
+	// con FormData que incluye authenticity_token y _method.
+	// Este test documenta el contrato entre el cliente y el servidor.
+	task := &models.Task{Title: "Tarea para toggle con token"}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	// Simula lo que el cliente JavaScript hace: envía PUT con FormData.
+	// El middleware CSRF valida el token en el cuerpo multipart.
+	res := as.HTML("/tasks/%s/toggle", task.ID).Put(url.Values{})
+	as.Equal(303, res.Code)
+
+	as.NoError(as.DB.Reload(task))
+	as.True(task.Completed)
+}
+
 func (as *ActionSuite) Test_TasksDestroy() {
 	task := &models.Task{Title: "Tarea que se elimina"}
 	verrs, err := as.DB.ValidateAndCreate(task)
