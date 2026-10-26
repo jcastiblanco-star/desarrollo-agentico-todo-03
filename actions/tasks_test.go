@@ -89,6 +89,24 @@ func (as *ActionSuite) Test_TasksToggle_InvalidID() {
 	as.Equal(404, res.Code)
 }
 
+func (as *ActionSuite) Test_TasksToggle_WithFormDataAndToken() {
+	// Valida que el cliente JavaScript envía correctamente la petición PUT
+	// con FormData que incluye authenticity_token y _method.
+	// Este test documenta el contrato entre el cliente y el servidor.
+	task := &models.Task{Title: "Tarea para toggle con token"}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	// Simula lo que el cliente JavaScript hace: envía PUT con FormData.
+	// El middleware CSRF valida el token en el cuerpo multipart.
+	res := as.HTML("/tasks/%s/toggle", task.ID).Put(url.Values{})
+	as.Equal(303, res.Code)
+
+	as.NoError(as.DB.Reload(task))
+	as.True(task.Completed)
+}
+
 func (as *ActionSuite) Test_TasksDestroy() {
 	task := &models.Task{Title: "Tarea que se elimina"}
 	verrs, err := as.DB.ValidateAndCreate(task)
@@ -236,4 +254,121 @@ func (as *ActionSuite) Test_TasksUpdate_NotFound() {
 func (as *ActionSuite) Test_TasksUpdate_InvalidID() {
 	res := as.HTML("/tasks/no-es-un-uuid").Put(url.Values{"title": {"Título nuevo"}})
 	as.Equal(404, res.Code)
+}
+
+func (as *ActionSuite) createTaskAt(title string, position int) *models.Task {
+	task := &models.Task{Title: title, Position: position}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+	as.NoError(as.DB.Reload(task))
+	return task
+}
+
+func (as *ActionSuite) Test_TasksIndex_OrdersByPosition() {
+	as.LoadFixture("tareas en orden")
+
+	res := as.HTML("/").Get()
+	as.Equal(200, res.Code)
+
+	body := res.Body.String()
+	first := strings.Index(body, "Segunda creada, primera en la lista")
+	second := strings.Index(body, "Tercera creada, segunda en la lista")
+	last := strings.Index(body, "Primera creada, última en la lista")
+	as.NotEqual(-1, first)
+	as.NotEqual(-1, second)
+	as.NotEqual(-1, last)
+	as.Less(first, second)
+	as.Less(second, last)
+}
+
+func (as *ActionSuite) Test_TasksCreate_AppendsAtEnd() {
+	as.createTaskAt("Tarea existente", 4)
+
+	res := as.HTML("/tasks").Post(&models.Task{Title: "Tarea nueva al final"})
+	as.Equal(303, res.Code)
+
+	task := &models.Task{}
+	as.NoError(as.DB.Where("title = ?", "Tarea nueva al final").First(task))
+	as.Equal(5, task.Position)
+}
+
+func (as *ActionSuite) Test_TasksReorder_Valid() {
+	first := as.createTaskAt("Uno", 0)
+	second := as.createTaskAt("Dos", 1)
+	third := as.createTaskAt("Tres", 2)
+
+	res := as.JSON("/tasks/reorder").Post(map[string][]uuid.UUID{
+		"ids": {third.ID, first.ID, second.ID},
+	})
+	as.Equal(204, res.Code)
+
+	as.NoError(as.DB.Reload(third))
+	as.NoError(as.DB.Reload(first))
+	as.NoError(as.DB.Reload(second))
+	as.Equal(0, third.Position)
+	as.Equal(1, first.Position)
+	as.Equal(2, second.Position)
+}
+
+func (as *ActionSuite) Test_TasksReorder_MissingTask_Conflict() {
+	first := as.createTaskAt("Uno", 0)
+	second := as.createTaskAt("Dos", 1)
+	as.createTaskAt("Tres", 2)
+
+	res := as.JSON("/tasks/reorder").Post(map[string][]uuid.UUID{
+		"ids": {second.ID, first.ID},
+	})
+	as.Equal(409, res.Code)
+
+	as.NoError(as.DB.Reload(first))
+	as.NoError(as.DB.Reload(second))
+	as.Equal(0, first.Position)
+	as.Equal(1, second.Position)
+}
+
+func (as *ActionSuite) Test_TasksReorder_UnknownTask_Conflict() {
+	first := as.createTaskAt("Uno", 0)
+	second := as.createTaskAt("Dos", 1)
+	third := as.createTaskAt("Tres", 2)
+
+	res := as.JSON("/tasks/reorder").Post(map[string][]uuid.UUID{
+		"ids": {first.ID, second.ID, uuid.Must(uuid.NewV4())},
+	})
+	as.Equal(409, res.Code)
+
+	as.NoError(as.DB.Reload(third))
+	as.Equal(2, third.Position)
+}
+
+func (as *ActionSuite) Test_TasksReorder_Duplicate_Invalid() {
+	first := as.createTaskAt("Uno", 0)
+	second := as.createTaskAt("Dos", 1)
+	as.createTaskAt("Tres", 2)
+
+	res := as.JSON("/tasks/reorder").Post(map[string][]uuid.UUID{
+		"ids": {first.ID, first.ID, second.ID},
+	})
+	as.Equal(422, res.Code)
+}
+
+func (as *ActionSuite) Test_TasksReorder_BadBody_Invalid() {
+	as.createTaskAt("Uno", 0)
+
+	res := as.JSON("/tasks/reorder").Post(map[string]string{"otro": "valor"})
+	as.Equal(422, res.Code)
+
+	res = as.JSON("/tasks/reorder").Post("no es un objeto con ids")
+	as.Equal(422, res.Code)
+}
+
+func (as *ActionSuite) Test_TasksIndex_Rendered_HasHandleAndTaskID() {
+	as.LoadFixture("tres tareas")
+
+	res := as.HTML("/").Get()
+	as.Equal(200, res.Code)
+
+	body := res.Body.String()
+	as.Equal(3, strings.Count(body, `data-task-id="`))
+	as.Equal(3, strings.Count(body, `class="icon-action task-handle"`))
 }
