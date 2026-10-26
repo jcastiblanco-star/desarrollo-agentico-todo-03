@@ -7,12 +7,14 @@
 
 <section aria-labelledby="list-heading">
   <h2 id="list-heading" class="sr-only">Lista de tareas</h2>
+  <p id="reorder-status" class="sr-only" role="status" aria-live="polite"></p>
+  <p id="reorder-error" class="field-error" role="alert" hidden>No se pudo guardar el orden. Se ha restaurado el anterior.</p>
   <%= if (len(tasks) == 0) { %>
     <p class="empty-state">No hay tareas todavía. Añade la primera con el formulario.</p>
   <% } else { %>
     <ul class="task-list">
       <%= for (t) in tasks { %>
-        <li class="task<%= if (t.Completed) { %> task-completed<% } %>">
+        <li class="task<%= if (t.Completed) { %> task-completed<% } %>" data-task-id="<%= t.ID %>">
           <form action="/tasks/<%= t.ID %>/toggle" method="POST" class="task-toggle" data-task-toggle>
             <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
             <input type="hidden" name="_method" value="PUT">
@@ -30,10 +32,23 @@
             </button>
           </form>
           <span class="task-title"><%= t.Title %></span>
+          <%= if (t.DueDate != nil) { %>
+            <span class="task-due-date">Fecha límite: <%= t.DueDate.Format("02 de enero de 2006") %></span>
+          <% } %>
           <%= if (t.Completed) { %>
             <span class="task-status">Completada</span>
           <% } %>
           <div class="task-actions">
+            <button
+              type="button"
+              class="icon-action task-handle"
+              aria-label="Reordenar tarea: <%= t.Title %>"
+              title="Arrastrar para reordenar (o Alt+↑ / Alt+↓)"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" />
+              </svg>
+            </button>
             <a href="/tasks/<%= t.ID %>/edit" class="icon-action" aria-label="Editar tarea: <%= t.Title %>" title="Editar tarea">
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" />

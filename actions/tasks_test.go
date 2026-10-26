@@ -3,6 +3,7 @@ package actions
 import (
 	"net/url"
 	"strings"
+	"time"
 
 	"todo/models"
 
@@ -236,4 +237,159 @@ func (as *ActionSuite) Test_TasksUpdate_NotFound() {
 func (as *ActionSuite) Test_TasksUpdate_InvalidID() {
 	res := as.HTML("/tasks/no-es-un-uuid").Put(url.Values{"title": {"Título nuevo"}})
 	as.Equal(404, res.Code)
+}
+
+func (as *ActionSuite) createTaskAt(title string, position int) *models.Task {
+	task := &models.Task{Title: title, Position: position}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+	as.NoError(as.DB.Reload(task))
+	return task
+}
+
+func (as *ActionSuite) Test_TasksIndex_OrdersByPosition() {
+	as.LoadFixture("tareas en orden")
+
+	res := as.HTML("/").Get()
+	as.Equal(200, res.Code)
+
+	body := res.Body.String()
+	first := strings.Index(body, "Segunda creada, primera en la lista")
+	second := strings.Index(body, "Tercera creada, segunda en la lista")
+	last := strings.Index(body, "Primera creada, última en la lista")
+	as.NotEqual(-1, first)
+	as.NotEqual(-1, second)
+	as.NotEqual(-1, last)
+	as.Less(first, second)
+	as.Less(second, last)
+}
+
+func (as *ActionSuite) Test_TasksCreate_AppendsAtEnd() {
+	as.createTaskAt("Tarea existente", 4)
+
+	res := as.HTML("/tasks").Post(&models.Task{Title: "Tarea nueva al final"})
+	as.Equal(303, res.Code)
+
+	task := &models.Task{}
+	as.NoError(as.DB.Where("title = ?", "Tarea nueva al final").First(task))
+	as.Equal(5, task.Position)
+}
+
+func (as *ActionSuite) Test_TasksReorder_Valid() {
+	first := as.createTaskAt("Uno", 0)
+	second := as.createTaskAt("Dos", 1)
+	third := as.createTaskAt("Tres", 2)
+
+	res := as.JSON("/tasks/reorder").Post(map[string][]uuid.UUID{
+		"ids": {third.ID, first.ID, second.ID},
+	})
+	as.Equal(204, res.Code)
+
+	as.NoError(as.DB.Reload(third))
+	as.NoError(as.DB.Reload(first))
+	as.NoError(as.DB.Reload(second))
+	as.Equal(0, third.Position)
+	as.Equal(1, first.Position)
+	as.Equal(2, second.Position)
+}
+
+func (as *ActionSuite) Test_TasksReorder_MissingTask_Conflict() {
+	first := as.createTaskAt("Uno", 0)
+	second := as.createTaskAt("Dos", 1)
+	as.createTaskAt("Tres", 2)
+
+	res := as.JSON("/tasks/reorder").Post(map[string][]uuid.UUID{
+		"ids": {second.ID, first.ID},
+	})
+	as.Equal(409, res.Code)
+
+	as.NoError(as.DB.Reload(first))
+	as.NoError(as.DB.Reload(second))
+	as.Equal(0, first.Position)
+	as.Equal(1, second.Position)
+}
+
+func (as *ActionSuite) Test_TasksReorder_UnknownTask_Conflict() {
+	first := as.createTaskAt("Uno", 0)
+	second := as.createTaskAt("Dos", 1)
+	third := as.createTaskAt("Tres", 2)
+
+	res := as.JSON("/tasks/reorder").Post(map[string][]uuid.UUID{
+		"ids": {first.ID, second.ID, uuid.Must(uuid.NewV4())},
+	})
+	as.Equal(409, res.Code)
+
+	as.NoError(as.DB.Reload(third))
+	as.Equal(2, third.Position)
+}
+
+func (as *ActionSuite) Test_TasksReorder_Duplicate_Invalid() {
+	first := as.createTaskAt("Uno", 0)
+	second := as.createTaskAt("Dos", 1)
+	as.createTaskAt("Tres", 2)
+
+	res := as.JSON("/tasks/reorder").Post(map[string][]uuid.UUID{
+		"ids": {first.ID, first.ID, second.ID},
+	})
+	as.Equal(422, res.Code)
+}
+
+func (as *ActionSuite) Test_TasksReorder_BadBody_Invalid() {
+	as.createTaskAt("Uno", 0)
+
+	res := as.JSON("/tasks/reorder").Post(map[string]string{"otro": "valor"})
+	as.Equal(422, res.Code)
+
+	res = as.JSON("/tasks/reorder").Post("no es un objeto con ids")
+	as.Equal(422, res.Code)
+}
+
+func (as *ActionSuite) Test_TasksIndex_Rendered_HasHandleAndTaskID() {
+	as.LoadFixture("tres tareas")
+
+	res := as.HTML("/").Get()
+	as.Equal(200, res.Code)
+
+	body := res.Body.String()
+	as.Equal(3, strings.Count(body, `data-task-id="`))
+	as.Equal(3, strings.Count(body, `class="icon-action task-handle"`))
+}
+
+func (as *ActionSuite) Test_TasksUpdate_WithDueDate() {
+	task := as.taskForEditing(false)
+	id := task.ID
+	dueDate := "2026-11-15"
+
+	res := as.HTML("/tasks/%s", id).Put(url.Values{
+		"title":    {"Título con fecha límite"},
+		"due_date": {dueDate},
+	})
+	as.Equal(303, res.Code)
+
+	as.NoError(as.DB.Reload(task))
+	as.Equal("Título con fecha límite", task.Title)
+	as.NotNil(task.DueDate)
+	as.Equal(2026, task.DueDate.Year())
+	as.Equal(time.November, task.DueDate.Month())
+	as.Equal(15, task.DueDate.Day())
+}
+
+func (as *ActionSuite) Test_TasksUpdate_ClearsDueDate() {
+	dueDate := time.Date(2026, 11, 15, 0, 0, 0, 0, time.UTC)
+	task := &models.Task{Title: "Tarea con fecha", DueDate: &dueDate}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+	as.NoError(as.DB.Reload(task))
+	as.NotNil(task.DueDate)
+
+	res := as.HTML("/tasks/%s", task.ID).Put(url.Values{
+		"title": {"Título actualizado"},
+	})
+	as.Equal(303, res.Code)
+
+	as.NoError(as.DB.Reload(task))
+	as.Equal("Título actualizado", task.Title)
+	as.Nil(task.DueDate)
 }

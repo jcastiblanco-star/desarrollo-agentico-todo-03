@@ -23,6 +23,13 @@
       <%= for (msg) in errors.Get("title") { %><%= msg %><% } %>
     </p>
   <% } %>
+  <label for="task-due-date">Fecha límite (opcional)</label>
+  <input
+    id="task-due-date"
+    type="date"
+    name="due_date"
+    value="<%= if (task.DueDate != nil) { %><%= task.DueDate.Format("2006-01-02") %><% } %>"
+  >
   <div class="edit-task-actions">
     <a href="/" class="button">Cancelar</a>
     <button type="submit" class="button button-primary">Guardar cambios</button>
